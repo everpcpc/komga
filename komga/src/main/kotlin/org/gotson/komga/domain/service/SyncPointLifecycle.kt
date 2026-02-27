@@ -1,7 +1,7 @@
 package org.gotson.komga.domain.service
 
-import org.gotson.komga.domain.model.BookSearch
 import org.gotson.komga.domain.model.AccessControl
+import org.gotson.komga.domain.model.BookSearch
 import org.gotson.komga.domain.model.KomgaUser
 import org.gotson.komga.domain.model.Media
 import org.gotson.komga.domain.model.MediaProfile

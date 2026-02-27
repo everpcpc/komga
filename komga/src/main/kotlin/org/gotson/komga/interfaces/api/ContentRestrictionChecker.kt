@@ -1,7 +1,7 @@
 package org.gotson.komga.interfaces.api
 
-import org.gotson.komga.domain.model.Book
 import org.gotson.komga.domain.model.AccessControl
+import org.gotson.komga.domain.model.Book
 import org.gotson.komga.domain.model.KomgaUser
 import org.gotson.komga.domain.persistence.BookRepository
 import org.gotson.komga.domain.persistence.SeriesMetadataRepository

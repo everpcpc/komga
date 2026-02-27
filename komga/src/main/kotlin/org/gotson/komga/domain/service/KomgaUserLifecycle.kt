@@ -6,8 +6,8 @@ import org.gotson.komga.domain.model.ContentRestrictions
 import org.gotson.komga.domain.model.DomainEvent
 import org.gotson.komga.domain.model.DuplicateNameException
 import org.gotson.komga.domain.model.KomgaUser
-import org.gotson.komga.domain.model.UserRoles
 import org.gotson.komga.domain.model.UserEmailAlreadyExistsException
+import org.gotson.komga.domain.model.UserRoles
 import org.gotson.komga.domain.persistence.AuthenticationActivityRepository
 import org.gotson.komga.domain.persistence.KomgaUserRepository
 import org.gotson.komga.domain.persistence.ReadProgressRepository

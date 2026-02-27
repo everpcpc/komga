@@ -1,7 +1,7 @@
 package org.gotson.komga.infrastructure.security
 
-import org.gotson.komga.domain.model.ApiKey
 import org.gotson.komga.domain.model.AccessControl
+import org.gotson.komga.domain.model.ApiKey
 import org.gotson.komga.domain.model.KomgaUser
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.authority.SimpleGrantedAuthority

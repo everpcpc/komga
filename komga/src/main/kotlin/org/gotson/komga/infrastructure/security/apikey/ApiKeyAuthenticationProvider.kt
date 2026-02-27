@@ -1,7 +1,7 @@
 package org.gotson.komga.infrastructure.security.apikey
 
-import org.gotson.komga.domain.persistence.KomgaUserRepository
 import org.gotson.komga.domain.model.AccessControl
+import org.gotson.komga.domain.persistence.KomgaUserRepository
 import org.gotson.komga.infrastructure.security.KomgaPrincipal
 import org.springframework.security.authentication.BadCredentialsException
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken

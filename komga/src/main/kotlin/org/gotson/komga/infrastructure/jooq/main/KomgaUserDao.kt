@@ -142,8 +142,7 @@ class KomgaUserDao(
           AllowExclude.EXCLUDE -> false
           null -> null
         },
-      )
-      .execute()
+      ).execute()
 
     dslRW.insertRoles(apiKey)
     dslRW.insertSharedLibraries(apiKey)
