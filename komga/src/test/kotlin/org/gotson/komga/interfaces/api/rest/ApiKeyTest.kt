@@ -83,7 +83,8 @@ class ApiKeyTest(
           adminUser,
           "limited",
           roles = setOf(UserRoles.FILE_DOWNLOAD),
-        )!!.key
+        )!!
+        .key
 
     mockMvc
       .get("/api/v2/users") {
@@ -110,7 +111,8 @@ class ApiKeyTest(
           regularUser,
           "elevated",
           roles = setOf(UserRoles.ADMIN),
-        )!!.key
+        )!!
+        .key
 
     mockMvc
       .get("/api/v2/users") {
