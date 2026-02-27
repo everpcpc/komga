@@ -245,9 +245,9 @@ class OpdsController(
     val bookPage =
       bookDtoRepository.findAllOnDeck(
         principal.user.id,
-        principal.user.getAuthorizedLibraryIds(null),
+        principal.access.getAuthorizedLibraryIds(null),
         page,
-        principal.user.restrictions,
+        principal.access.restrictions,
       )
 
     val builder = uriBuilder(ROUTE_ON_DECK)
@@ -286,7 +286,7 @@ class OpdsController(
     val bookPage =
       bookDtoRepository.findAll(
         bookSearch,
-        SearchContext(principal.user),
+        SearchContext(principal.access),
         pageable,
       )
 
@@ -332,7 +332,7 @@ class OpdsController(
         ),
       )
 
-    val seriesPage = seriesDtoRepository.findAll(seriesSearch, SearchContext(principal.user), pageable)
+    val seriesPage = seriesDtoRepository.findAll(seriesSearch, SearchContext(principal.access), pageable)
 
     val builder =
       uriBuilder(ROUTE_SERIES_ALL)
@@ -363,7 +363,7 @@ class OpdsController(
 
     val seriesSearch = SeriesSearch(SearchCondition.Deleted(SearchOperator.IsFalse))
 
-    val seriesPage = seriesDtoRepository.findAll(seriesSearch, SearchContext(principal.user), pageable)
+    val seriesPage = seriesDtoRepository.findAll(seriesSearch, SearchContext(principal.access), pageable)
 
     val uriBuilder = uriBuilder(ROUTE_SERIES_LATEST)
 
@@ -396,7 +396,7 @@ class OpdsController(
       )
     val pageable = PageRequest.of(page.pageNumber, page.pageSize, Sort.by(Sort.Order.desc("createdDate")))
 
-    val bookPage = bookDtoRepository.findAll(bookSearch, SearchContext(principal.user), pageable)
+    val bookPage = bookDtoRepository.findAll(bookSearch, SearchContext(principal.access), pageable)
 
     val uriBuilder = uriBuilder(ROUTE_BOOKS_LATEST)
 
@@ -420,10 +420,10 @@ class OpdsController(
     @AuthenticationPrincipal principal: KomgaPrincipal,
   ): OpdsFeed {
     val libraries =
-      if (principal.user.canAccessAllLibraries()) {
+      if (principal.access.canAccessAllLibraries()) {
         libraryRepository.findAll()
       } else {
-        libraryRepository.findAllByIds(principal.user.sharedLibrariesIds)
+        libraryRepository.findAllByIds(principal.access.sharedLibrariesIds)
       }
     return OpdsFeedNavigation(
       id = ID_LIBRARIES_ALL,
@@ -445,7 +445,7 @@ class OpdsController(
     @Parameter(hidden = true) page: Pageable,
   ): OpdsFeed {
     val pageable = PageRequest.of(page.pageNumber, page.pageSize, Sort.by(Sort.Order.asc("name")))
-    val collections = collectionRepository.findAll(principal.user.getAuthorizedLibraryIds(null), principal.user.getAuthorizedLibraryIds(null), pageable = pageable)
+    val collections = collectionRepository.findAll(principal.access.getAuthorizedLibraryIds(null), principal.access.getAuthorizedLibraryIds(null), pageable = pageable)
 
     val uriBuilder = uriBuilder(ROUTE_COLLECTIONS_ALL)
 
@@ -470,7 +470,7 @@ class OpdsController(
     @Parameter(hidden = true) page: Pageable,
   ): OpdsFeed {
     val pageable = PageRequest.of(page.pageNumber, page.pageSize, Sort.by(Sort.Order.asc("name")))
-    val readLists = readListRepository.findAll(principal.user.getAuthorizedLibraryIds(null), principal.user.getAuthorizedLibraryIds(null), pageable = pageable)
+    val readLists = readListRepository.findAll(principal.access.getAuthorizedLibraryIds(null), principal.access.getAuthorizedLibraryIds(null), pageable = pageable)
 
     val uriBuilder = uriBuilder(ROUTE_READLISTS_ALL)
 
@@ -494,7 +494,7 @@ class OpdsController(
     @AuthenticationPrincipal principal: KomgaPrincipal,
     @Parameter(hidden = true) page: Pageable,
   ): OpdsFeed {
-    val publishers = referentialRepository.findAllPublishers(principal.user.getAuthorizedLibraryIds(null), page)
+    val publishers = referentialRepository.findAllPublishers(principal.access.getAuthorizedLibraryIds(null), page)
 
     val uriBuilder = uriBuilder(ROUTE_PUBLISHERS_ALL)
 
@@ -529,7 +529,7 @@ class OpdsController(
     @Parameter(hidden = true) page: Pageable,
   ): OpdsFeed =
     seriesDtoRepository.findByIdOrNull(id, principal.user.id)?.let { series ->
-      contentRestrictionChecker.checkContentRestriction(principal.user, series)
+      contentRestrictionChecker.checkContentRestriction(principal.access, series)
 
       val bookSearch =
         BookSearch(
@@ -543,7 +543,7 @@ class OpdsController(
 
       val entries =
         bookDtoRepository
-          .findAll(bookSearch, SearchContext(principal.user), pageable)
+          .findAll(bookSearch, SearchContext(principal.access), pageable)
           .map { it.toOpdsEntry(mediaRepository.findById(it.id)) }
 
       val uriBuilder = uriBuilder("series/$id")
@@ -570,7 +570,7 @@ class OpdsController(
     @Parameter(hidden = true) page: Pageable,
   ): OpdsFeed =
     libraryRepository.findByIdOrNull(id)?.let { library ->
-      if (!principal.user.canAccessLibrary(library)) throw ResponseStatusException(HttpStatus.FORBIDDEN)
+      if (!principal.access.canAccessLibrary(library)) throw ResponseStatusException(HttpStatus.FORBIDDEN)
 
       val seriesSearch =
         SeriesSearch(
@@ -584,7 +584,7 @@ class OpdsController(
 
       val entries =
         seriesDtoRepository
-          .findAll(seriesSearch, SearchContext(principal.user), pageable)
+          .findAll(seriesSearch, SearchContext(principal.access), pageable)
           .map { it.toOpdsEntry() }
 
       val uriBuilder = uriBuilder("libraries/$id")
@@ -610,7 +610,7 @@ class OpdsController(
     @PathVariable id: String,
     @Parameter(hidden = true) page: Pageable,
   ): OpdsFeed =
-    collectionRepository.findByIdOrNull(id, principal.user.getAuthorizedLibraryIds(null))?.let { collection ->
+    collectionRepository.findByIdOrNull(id, principal.access.getAuthorizedLibraryIds(null))?.let { collection ->
       val sort =
         if (collection.ordered)
           Sort.by(Sort.Order.asc("collection.number"))
@@ -628,7 +628,7 @@ class OpdsController(
 
       val entries =
         seriesDtoRepository
-          .findAll(seriesSearch, SearchContext(principal.user), pageable)
+          .findAll(seriesSearch, SearchContext(principal.access), pageable)
           .map { it.toOpdsEntry() }
 
       val uriBuilder = uriBuilder("collections/$id")
@@ -654,7 +654,7 @@ class OpdsController(
     @PathVariable id: String,
     @Parameter(hidden = true) page: Pageable,
   ): OpdsFeed =
-    readListRepository.findByIdOrNull(id, principal.user.getAuthorizedLibraryIds(null))?.let { readList ->
+    readListRepository.findByIdOrNull(id, principal.access.getAuthorizedLibraryIds(null))?.let { readList ->
       val sort =
         if (readList.ordered)
           Sort.by(Sort.Order.asc("readList.number"))
@@ -670,7 +670,7 @@ class OpdsController(
             SearchCondition.Deleted(SearchOperator.IsFalse),
           ),
         )
-      val booksPage = bookDtoRepository.findAll(bookSearch, SearchContext(principal.user), pageable)
+      val booksPage = bookDtoRepository.findAll(bookSearch, SearchContext(principal.access), pageable)
 
       val entries =
         booksPage.map { bookDto ->
@@ -703,7 +703,7 @@ class OpdsController(
     @AuthenticationPrincipal principal: KomgaPrincipal,
     @PathVariable bookId: String,
   ): ByteArray {
-    contentRestrictionChecker.checkContentRestriction(principal.user, bookId)
+    contentRestrictionChecker.checkContentRestriction(principal.access, bookId)
     val thumbnail = bookLifecycle.getThumbnail(bookId) ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
 
     return bookLifecycle.getThumbnailBytes(bookId, if (thumbnail.type == ThumbnailBook.Type.GENERATED) null else komgaSettingsProvider.thumbnailSize.maxEdge)?.bytes

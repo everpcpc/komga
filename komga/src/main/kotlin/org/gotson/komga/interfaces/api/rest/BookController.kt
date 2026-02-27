@@ -165,8 +165,8 @@ class BookController(
       )
 
     return bookDtoRepository
-      .findAll(bookSearch, SearchContext(principal.user), pageRequest)
-      .map { it.restrictUrl(!principal.user.isAdmin) }
+      .findAll(bookSearch, SearchContext(principal.access), pageRequest)
+      .map { it.restrictUrl(!principal.access.isAdmin) }
   }
 
   @PageableAsQueryParam
@@ -196,8 +196,8 @@ class BookController(
         )
 
     return bookDtoRepository
-      .findAll(search, SearchContext(principal.user), pageRequest)
-      .map { it.restrictUrl(!principal.user.isAdmin) }
+      .findAll(search, SearchContext(principal.access), pageRequest)
+      .map { it.restrictUrl(!principal.access.isAdmin) }
   }
 
   @Operation(summary = "List latest books", description = "Return newly added or updated books.", tags = [OpenApiConfiguration.TagNames.BOOKS])
@@ -222,9 +222,9 @@ class BookController(
 
     return bookDtoRepository
       .findAll(
-        SearchContext(principal.user),
+        SearchContext(principal.access),
         pageRequest,
-      ).map { it.restrictUrl(!principal.user.isAdmin) }
+      ).map { it.restrictUrl(!principal.access.isAdmin) }
   }
 
   @Operation(summary = "List books on deck", description = "Return first unread book of series with at least one book read and no books in progress.", tags = [OpenApiConfiguration.TagNames.BOOKS])
@@ -238,10 +238,10 @@ class BookController(
     bookDtoRepository
       .findAllOnDeck(
         principal.user.id,
-        principal.user.getAuthorizedLibraryIds(libraryIds),
+        principal.access.getAuthorizedLibraryIds(libraryIds),
         page,
-        principal.user.restrictions,
-      ).map { it.restrictUrl(!principal.user.isAdmin) }
+        principal.access.restrictions,
+      ).map { it.restrictUrl(!principal.access.isAdmin) }
 
   @Operation(summary = "List duplicate books", description = "Return books that have the same file hash.", tags = [OpenApiConfiguration.TagNames.BOOKS])
   @PageableAsQueryParam
@@ -278,9 +278,9 @@ class BookController(
     @PathVariable bookId: String,
   ): BookDto =
     bookDtoRepository.findByIdOrNull(bookId, principal.user.id)?.let {
-      contentRestrictionChecker.checkContentRestriction(principal.user, it)
+      contentRestrictionChecker.checkContentRestriction(principal.access, it)
 
-      it.restrictUrl(!principal.user.isAdmin)
+      it.restrictUrl(!principal.access.isAdmin)
     } ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
 
   @Operation(summary = "Get previous book in series", tags = [OpenApiConfiguration.TagNames.BOOKS])
@@ -289,11 +289,11 @@ class BookController(
     @AuthenticationPrincipal principal: KomgaPrincipal,
     @PathVariable bookId: String,
   ): BookDto {
-    contentRestrictionChecker.checkContentRestriction(principal.user, bookId)
+    contentRestrictionChecker.checkContentRestriction(principal.access, bookId)
 
     return bookDtoRepository
       .findPreviousInSeriesOrNull(bookId, principal.user.id)
-      ?.restrictUrl(!principal.user.isAdmin)
+      ?.restrictUrl(!principal.access.isAdmin)
       ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
   }
 
@@ -303,11 +303,11 @@ class BookController(
     @AuthenticationPrincipal principal: KomgaPrincipal,
     @PathVariable bookId: String,
   ): BookDto {
-    contentRestrictionChecker.checkContentRestriction(principal.user, bookId)
+    contentRestrictionChecker.checkContentRestriction(principal.access, bookId)
 
     return bookDtoRepository
       .findNextInSeriesOrNull(bookId, principal.user.id)
-      ?.restrictUrl(!principal.user.isAdmin)
+      ?.restrictUrl(!principal.access.isAdmin)
       ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
   }
 
@@ -317,10 +317,10 @@ class BookController(
     @AuthenticationPrincipal principal: KomgaPrincipal,
     @PathVariable(name = "bookId") bookId: String,
   ): List<ReadListDto> {
-    contentRestrictionChecker.checkContentRestriction(principal.user, bookId)
+    contentRestrictionChecker.checkContentRestriction(principal.access, bookId)
 
     return readListRepository
-      .findAllContainingBookId(bookId, principal.user.getAuthorizedLibraryIds(null), principal.user.restrictions)
+      .findAllContainingBookId(bookId, principal.access.getAuthorizedLibraryIds(null), principal.access.restrictions)
       .map { it.toDto() }
   }
 
@@ -334,7 +334,7 @@ class BookController(
     @AuthenticationPrincipal principal: KomgaPrincipal,
     @PathVariable bookId: String,
   ): ByteArray {
-    contentRestrictionChecker.checkContentRestriction(principal.user, bookId)
+    contentRestrictionChecker.checkContentRestriction(principal.access, bookId)
 
     return bookLifecycle.getThumbnailBytes(bookId)?.bytes ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
   }
@@ -347,7 +347,7 @@ class BookController(
     @PathVariable(name = "bookId") bookId: String,
     @PathVariable(name = "thumbnailId") thumbnailId: String,
   ): ByteArray {
-    contentRestrictionChecker.checkContentRestriction(principal.user, bookId)
+    contentRestrictionChecker.checkContentRestriction(principal.access, bookId)
 
     return bookLifecycle.getThumbnailBytesByThumbnailId(thumbnailId)?.bytes
       ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
@@ -359,7 +359,7 @@ class BookController(
     @AuthenticationPrincipal principal: KomgaPrincipal,
     @PathVariable(name = "bookId") bookId: String,
   ): Collection<ThumbnailBookDto> {
-    contentRestrictionChecker.checkContentRestriction(principal.user, bookId)
+    contentRestrictionChecker.checkContentRestriction(principal.access, bookId)
 
     return thumbnailBookRepository
       .findAllByBookId(bookId)
@@ -436,7 +436,7 @@ class BookController(
     @PathVariable bookId: String,
   ): List<PageDto> =
     bookRepository.findByIdOrNull(bookId)?.let { book ->
-      contentRestrictionChecker.checkContentRestriction(principal.user, book)
+      contentRestrictionChecker.checkContentRestriction(principal.access, book)
 
       val media = mediaRepository.findById(book.id)
       when (media.status) {
@@ -513,7 +513,7 @@ class BookController(
           .body(ByteArray(0))
       }
 
-      contentRestrictionChecker.checkContentRestriction(principal.user, book)
+      contentRestrictionChecker.checkContentRestriction(principal.access, book)
 
       try {
         val pageContent = bookLifecycle.getBookPage(book, pageNumber, resizeTo = 300)
@@ -571,7 +571,7 @@ class BookController(
           .body(null)
       }
 
-      contentRestrictionChecker.checkContentRestriction(principal.user, book)
+      contentRestrictionChecker.checkContentRestriction(principal.access, book)
 
       val extension =
         mediaRepository.findExtensionByIdOrNull(book.id) as? MediaExtensionEpub
@@ -695,7 +695,7 @@ class BookController(
     @AuthenticationPrincipal principal: KomgaPrincipal,
   ) {
     bookRepository.findByIdOrNull(bookId)?.let { book ->
-      contentRestrictionChecker.checkContentRestriction(principal.user, book)
+      contentRestrictionChecker.checkContentRestriction(principal.access, book)
 
       try {
         if (readProgress.completed != null && readProgress.completed)
@@ -716,7 +716,7 @@ class BookController(
     @AuthenticationPrincipal principal: KomgaPrincipal,
   ) {
     bookRepository.findByIdOrNull(bookId)?.let { book ->
-      contentRestrictionChecker.checkContentRestriction(principal.user, book)
+      contentRestrictionChecker.checkContentRestriction(principal.access, book)
 
       bookLifecycle.deleteReadProgress(book, principal.user)
     } ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)

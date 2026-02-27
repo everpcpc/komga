@@ -51,13 +51,13 @@ class SeriesCollectionDao(
   override fun findByIdOrNull(
     collectionId: String,
     filterOnLibraryIds: Collection<String>?,
-    restrictions: ContentRestrictions,
+    restrictions: Collection<ContentRestrictions>,
   ): SeriesCollection? =
     dslRO
-      .selectBase(restrictions.isRestricted)
+      .selectBase(restrictions.isNotEmpty())
       .where(c.ID.eq(collectionId))
       .apply { filterOnLibraryIds?.let { and(s.LIBRARY_ID.`in`(it)) } }
-      .apply { if (restrictions.isRestricted) and(restrictions.toCondition()) }
+      .apply { if (restrictions.isNotEmpty()) and(restrictions.toCondition()) }
       .fetchAndMap(dslRO, filterOnLibraryIds, restrictions)
       .firstOrNull()
 
@@ -66,7 +66,7 @@ class SeriesCollectionDao(
     filterOnLibraryIds: Collection<String>?,
     search: String?,
     pageable: Pageable,
-    restrictions: ContentRestrictions,
+    restrictions: Collection<ContentRestrictions>,
   ): Page<SeriesCollection> {
     val collectionIds = luceneHelper.searchEntitiesIds(search, LuceneEntity.Collection)
     val searchCondition = c.ID.inOrNoCondition(collectionIds)
@@ -78,7 +78,7 @@ class SeriesCollectionDao(
         .and(restrictions.toCondition())
 
     val queryIds =
-      if (belongsToLibraryIds == null && filterOnLibraryIds == null && !restrictions.isRestricted)
+      if (belongsToLibraryIds == null && filterOnLibraryIds == null && restrictions.isEmpty())
         null
       else
         dslRO
@@ -108,7 +108,7 @@ class SeriesCollectionDao(
 
     val items =
       dslRO
-        .selectBase(restrictions.isRestricted)
+        .selectBase(restrictions.isNotEmpty())
         .where(conditions)
         .apply { if (queryIds != null) and(c.ID.`in`(queryIds)) }
         .orderBy(orderBy)
@@ -129,7 +129,7 @@ class SeriesCollectionDao(
   override fun findAllContainingSeriesId(
     containsSeriesId: String,
     filterOnLibraryIds: Collection<String>?,
-    restrictions: ContentRestrictions,
+    restrictions: Collection<ContentRestrictions>,
   ): Collection<SeriesCollection> {
     val queryIds =
       dslRO
@@ -137,15 +137,15 @@ class SeriesCollectionDao(
         .from(c)
         .leftJoin(cs)
         .on(c.ID.eq(cs.COLLECTION_ID))
-        .apply { if (restrictions.isRestricted) leftJoin(sd).on(cs.SERIES_ID.eq(sd.SERIES_ID)) }
+        .apply { if (restrictions.isNotEmpty()) leftJoin(sd).on(cs.SERIES_ID.eq(sd.SERIES_ID)) }
         .where(cs.SERIES_ID.eq(containsSeriesId))
-        .apply { if (restrictions.isRestricted) and(restrictions.toCondition()) }
+        .apply { if (restrictions.isNotEmpty()) and(restrictions.toCondition()) }
 
     return dslRO
-      .selectBase(restrictions.isRestricted)
+      .selectBase(restrictions.isNotEmpty())
       .where(c.ID.`in`(queryIds))
       .apply { filterOnLibraryIds?.let { and(s.LIBRARY_ID.`in`(it)) } }
-      .apply { if (restrictions.isRestricted) and(restrictions.toCondition()) }
+      .apply { if (restrictions.isNotEmpty()) and(restrictions.toCondition()) }
       .fetchAndMap(dslRO, filterOnLibraryIds, restrictions)
   }
 
@@ -184,7 +184,7 @@ class SeriesCollectionDao(
   private fun ResultQuery<Record>.fetchAndMap(
     dsl: DSLContext,
     filterOnLibraryIds: Collection<String>?,
-    restrictions: ContentRestrictions = ContentRestrictions(),
+    restrictions: Collection<ContentRestrictions> = emptyList(),
   ): List<SeriesCollection> =
     fetchInto(c)
       .map { cr ->
@@ -194,10 +194,10 @@ class SeriesCollectionDao(
             .from(cs)
             .leftJoin(s)
             .on(cs.SERIES_ID.eq(s.ID))
-            .apply { if (restrictions.isRestricted) leftJoin(sd).on(cs.SERIES_ID.eq(sd.SERIES_ID)) }
+            .apply { if (restrictions.isNotEmpty()) leftJoin(sd).on(cs.SERIES_ID.eq(sd.SERIES_ID)) }
             .where(cs.COLLECTION_ID.eq(cr.id))
             .apply { filterOnLibraryIds?.let { and(s.LIBRARY_ID.`in`(it)) } }
-            .apply { if (restrictions.isRestricted) and(restrictions.toCondition()) }
+            .apply { if (restrictions.isNotEmpty()) and(restrictions.toCondition()) }
             .orderBy(cs.NUMBER.asc())
             .fetchInto(cs)
             .mapNotNull { it.seriesId }

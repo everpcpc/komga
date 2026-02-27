@@ -271,7 +271,7 @@ class KoboController(
     // find the ongoing sync point, else create one
     val toSyncPoint =
       getSyncPointVerified(syncTokenReceived.ongoingSyncPointId, principal.user.id)
-        ?: syncPointLifecycle.createSyncPoint(principal.user, principal.apiKey?.id, null) // for now we sync all libraries
+        ?: syncPointLifecycle.createSyncPoint(principal.access, principal.apiKey?.id, null) // for now we sync all libraries
 
     // find the last successful sync, if any
     val fromSyncPoint = getSyncPointVerified(syncTokenReceived.lastSuccessfulSyncPointId, principal.user.id)
@@ -644,7 +644,7 @@ class KoboController(
   ): ResponseEntity<StreamingResponseBody> {
     if (convertToKepub) {
       bookRepository.findByIdOrNull(bookId)?.let { book ->
-        contentRestrictionChecker.checkContentRestriction(principal.user, book)
+        contentRestrictionChecker.checkContentRestriction(principal.access, book)
 
         // check cache
         val cacheKey = book.computeCacheKey()

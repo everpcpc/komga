@@ -21,7 +21,7 @@ import org.gotson.komga.domain.model.Author
 import org.gotson.komga.domain.model.BookSearch
 import org.gotson.komga.domain.model.Dimension
 import org.gotson.komga.domain.model.DomainEvent
-import org.gotson.komga.domain.model.KomgaUser
+import org.gotson.komga.domain.model.AccessControl
 import org.gotson.komga.domain.model.MarkSelectedPreference
 import org.gotson.komga.domain.model.Media
 import org.gotson.komga.domain.model.MediaType.ZIP
@@ -219,8 +219,8 @@ class SeriesController(
       )
 
     return seriesDtoRepository
-      .findAll(seriesSearch, SearchContext(principal.user), pageRequest)
-      .map { it.restrictUrl(!principal.user.isAdmin) }
+      .findAll(seriesSearch, SearchContext(principal.access), pageRequest)
+      .map { it.restrictUrl(!principal.access.isAdmin) }
   }
 
   @Operation(summary = "List series", tags = [OpenApiConfiguration.TagNames.SERIES])
@@ -250,8 +250,8 @@ class SeriesController(
         )
 
     return seriesDtoRepository
-      .findAll(search, SearchContext(principal.user), pageRequest)
-      .map { it.restrictUrl(!principal.user.isAdmin) }
+      .findAll(search, SearchContext(principal.access), pageRequest)
+      .map { it.restrictUrl(!principal.access.isAdmin) }
   }
 
   @Operation(summary = "List series groups", description = "Use POST /api/v1/series/list/alphabetical-groups instead. Deprecated since 1.19.0.", tags = [OpenApiConfiguration.TagNames.SERIES, OpenApiConfiguration.TagNames.DEPRECATED])
@@ -333,7 +333,7 @@ class SeriesController(
           },
       )
 
-    return seriesDtoRepository.countByFirstCharacter(seriesSearch, SearchContext(principal.user))
+    return seriesDtoRepository.countByFirstCharacter(seriesSearch, SearchContext(principal.access))
   }
 
   @Operation(summary = "List series groups", description = "List series grouped by the first character of their sort title.", tags = [OpenApiConfiguration.TagNames.SERIES])
@@ -341,7 +341,7 @@ class SeriesController(
   fun getSeriesAlphabeticalGroups(
     @AuthenticationPrincipal principal: KomgaPrincipal,
     @RequestBody search: SeriesSearch,
-  ): List<GroupCountDto> = seriesDtoRepository.countByFirstCharacter(search, SearchContext(principal.user))
+  ): List<GroupCountDto> = seriesDtoRepository.countByFirstCharacter(search, SearchContext(principal.access))
 
   @Operation(summary = "List latest series", description = "Return recently added or updated series.", tags = [OpenApiConfiguration.TagNames.SERIES])
   @PageableWithoutSortAsQueryParam
@@ -377,9 +377,9 @@ class SeriesController(
             },
           ),
         ),
-        SearchContext(principal.user),
+        SearchContext(principal.access),
         pageRequest,
-      ).map { it.restrictUrl(!principal.user.isAdmin) }
+      ).map { it.restrictUrl(!principal.access.isAdmin) }
   }
 
   @Operation(summary = "List new series", description = "Return newly added series.", tags = [OpenApiConfiguration.TagNames.SERIES])
@@ -416,9 +416,9 @@ class SeriesController(
             },
           ),
         ),
-        SearchContext(principal.user),
+        SearchContext(principal.access),
         pageRequest,
-      ).map { it.restrictUrl(!principal.user.isAdmin) }
+      ).map { it.restrictUrl(!principal.access.isAdmin) }
   }
 
   @Operation(summary = "List updated series", description = "Return recently updated series, but not newly added ones.", tags = [OpenApiConfiguration.TagNames.SERIES])
@@ -455,9 +455,9 @@ class SeriesController(
             },
           ),
         ),
-        SearchContext(principal.user),
+        SearchContext(principal.access),
         pageRequest,
-      ).map { it.restrictUrl(!principal.user.isAdmin) }
+      ).map { it.restrictUrl(!principal.access.isAdmin) }
   }
 
   @Operation(summary = "Get series details", tags = [OpenApiConfiguration.TagNames.SERIES])
@@ -467,8 +467,8 @@ class SeriesController(
     @PathVariable(name = "seriesId") id: String,
   ): SeriesDto =
     seriesDtoRepository.findByIdOrNull(id, principal.user.id)?.let {
-      contentRestrictionChecker.checkContentRestriction(principal.user, it)
-      it.restrictUrl(!principal.user.isAdmin)
+      contentRestrictionChecker.checkContentRestriction(principal.access, it)
+      it.restrictUrl(!principal.access.isAdmin)
     } ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
 
   @Operation(summary = "Get series' poster image", tags = [OpenApiConfiguration.TagNames.SERIES_POSTER])
@@ -478,7 +478,7 @@ class SeriesController(
     @AuthenticationPrincipal principal: KomgaPrincipal,
     @PathVariable(name = "seriesId") seriesId: String,
   ): ByteArray {
-    principal.user.checkContentRestriction(seriesId)
+    principal.access.checkContentRestriction(seriesId)
 
     return seriesLifecycle.getThumbnailBytes(seriesId, principal.user.id)
       ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
@@ -492,7 +492,7 @@ class SeriesController(
     @PathVariable(name = "seriesId") seriesId: String,
     @PathVariable(name = "thumbnailId") thumbnailId: String,
   ): ByteArray {
-    principal.user.checkContentRestriction(seriesId)
+    principal.access.checkContentRestriction(seriesId)
 
     return seriesLifecycle.getThumbnailBytesByThumbnailId(thumbnailId)
       ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
@@ -504,7 +504,7 @@ class SeriesController(
     @AuthenticationPrincipal principal: KomgaPrincipal,
     @PathVariable(name = "seriesId") seriesId: String,
   ): Collection<ThumbnailSeriesDto> {
-    principal.user.checkContentRestriction(seriesId)
+    principal.access.checkContentRestriction(seriesId)
 
     return thumbnailsSeriesRepository
       .findAllBySeriesId(seriesId)
@@ -589,7 +589,7 @@ class SeriesController(
     @Parameter(hidden = true) @Authors authors: List<Author>? = null,
     @Parameter(hidden = true) page: Pageable,
   ): Page<BookDto> {
-    principal.user.checkContentRestriction(seriesId)
+    principal.access.checkContentRestriction(seriesId)
 
     val sort =
       if (page.sort.isSorted)
@@ -623,9 +623,9 @@ class SeriesController(
     return bookDtoRepository
       .findAll(
         search,
-        SearchContext(principal.user),
+        SearchContext(principal.access),
         pageRequest,
-      ).map { it.restrictUrl(!principal.user.isAdmin) }
+      ).map { it.restrictUrl(!principal.access.isAdmin) }
   }
 
   @Operation(summary = "List series' collections", tags = [OpenApiConfiguration.TagNames.SERIES])
@@ -634,10 +634,10 @@ class SeriesController(
     @AuthenticationPrincipal principal: KomgaPrincipal,
     @PathVariable(name = "seriesId") seriesId: String,
   ): List<CollectionDto> {
-    principal.user.checkContentRestriction(seriesId)
+    principal.access.checkContentRestriction(seriesId)
 
     return collectionRepository
-      .findAllContainingSeriesId(seriesId, principal.user.getAuthorizedLibraryIds(null), principal.user.restrictions)
+      .findAllContainingSeriesId(seriesId, principal.access.getAuthorizedLibraryIds(null), principal.access.restrictions)
       .map { it.toDto() }
   }
 
@@ -746,7 +746,7 @@ class SeriesController(
     @PathVariable seriesId: String,
     @AuthenticationPrincipal principal: KomgaPrincipal,
   ) {
-    principal.user.checkContentRestriction(seriesId)
+    principal.access.checkContentRestriction(seriesId)
 
     seriesLifecycle.markReadProgressCompleted(seriesId, principal.user)
   }
@@ -758,7 +758,7 @@ class SeriesController(
     @PathVariable seriesId: String,
     @AuthenticationPrincipal principal: KomgaPrincipal,
   ) {
-    principal.user.checkContentRestriction(seriesId)
+    principal.access.checkContentRestriction(seriesId)
 
     seriesLifecycle.deleteReadProgress(seriesId, principal.user)
   }
@@ -769,7 +769,7 @@ class SeriesController(
     @PathVariable seriesId: String,
     @AuthenticationPrincipal principal: KomgaPrincipal,
   ): TachiyomiReadProgressV2Dto {
-    principal.user.checkContentRestriction(seriesId)
+    principal.access.checkContentRestriction(seriesId)
 
     return readProgressDtoRepository.findProgressV2BySeries(seriesId, principal.user.id)
   }
@@ -782,12 +782,12 @@ class SeriesController(
     @RequestBody readProgress: TachiyomiReadProgressUpdateV2Dto,
     @AuthenticationPrincipal principal: KomgaPrincipal,
   ) {
-    principal.user.checkContentRestriction(seriesId)
+    principal.access.checkContentRestriction(seriesId)
 
     bookDtoRepository
       .findAll(
         BookSearch(SearchCondition.SeriesId(SearchOperator.Is(seriesId))),
-        SearchContext(principal.user),
+        SearchContext(principal.access),
         UnpagedSorted(Sort.by(Sort.Order.asc("metadata.numberSort"))),
       ).toList()
       .filter { book -> book.metadata.numberSort <= readProgress.lastBookNumberSortRead }
@@ -804,7 +804,7 @@ class SeriesController(
     @AuthenticationPrincipal principal: KomgaPrincipal,
     @PathVariable seriesId: String,
   ): ResponseEntity<StreamingResponseBody> {
-    principal.user.checkContentRestriction(seriesId)
+    principal.access.checkContentRestriction(seriesId)
 
     val books = bookRepository.findAllBySeriesId(seriesId)
 
@@ -864,13 +864,13 @@ class SeriesController(
    *
    * @throws[ResponseStatusException] if the user cannot access the content
    */
-  private fun KomgaUser.checkContentRestriction(seriesId: String) {
+  private fun AccessControl.checkContentRestriction(seriesId: String) {
     if (!canAccessAllLibraries()) {
       seriesRepository.getLibraryId(seriesId)?.let {
         if (!canAccessLibrary(it)) throw ResponseStatusException(HttpStatus.FORBIDDEN)
       } ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
     }
-    if (restrictions.isRestricted)
+    if (restrictions.isNotEmpty())
       seriesMetadataRepository.findById(seriesId).let {
         if (!isContentAllowed(it.ageRating, it.sharingLabels)) throw ResponseStatusException(HttpStatus.FORBIDDEN)
       }

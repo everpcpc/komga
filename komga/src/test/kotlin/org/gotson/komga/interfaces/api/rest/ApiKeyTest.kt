@@ -1,6 +1,7 @@
 package org.gotson.komga.interfaces.api.rest
 
 import org.gotson.komga.domain.model.KomgaUser
+import org.gotson.komga.domain.model.UserRoles
 import org.gotson.komga.domain.persistence.KomgaUserRepository
 import org.gotson.komga.domain.service.KomgaUserLifecycle
 import org.junit.jupiter.api.AfterAll
@@ -65,5 +66,59 @@ class ApiKeyTest(
         status { isOk() }
         jsonPath("email") { value(user1.email) }
       }
+  }
+
+  @Test
+  fun `given admin user and api key without admin role when listing users then forbidden is returned`() {
+    val adminUser =
+      KomgaUser(
+        "admin@example.org",
+        "password",
+        roles = UserRoles.entries.toSet(),
+      )
+    userRepository.insert(adminUser)
+    val limitedApiKey =
+      komgaUserLifecycle
+        .createApiKey(
+          adminUser,
+          "limited",
+          roles = setOf(UserRoles.FILE_DOWNLOAD),
+        )!!.key
+
+    mockMvc
+      .get("/api/v2/users") {
+        header("x-api-key", limitedApiKey)
+      }.andExpect {
+        status { isForbidden() }
+      }
+
+    komgaUserLifecycle.deleteUser(adminUser)
+  }
+
+  @Test
+  fun `given non admin user and api key with admin role when listing users then forbidden is returned`() {
+    val regularUser =
+      KomgaUser(
+        "regular@example.org",
+        "password",
+        roles = setOf(UserRoles.FILE_DOWNLOAD, UserRoles.PAGE_STREAMING),
+      )
+    userRepository.insert(regularUser)
+    val elevatedApiKey =
+      komgaUserLifecycle
+        .createApiKey(
+          regularUser,
+          "elevated",
+          roles = setOf(UserRoles.ADMIN),
+        )!!.key
+
+    mockMvc
+      .get("/api/v2/users") {
+        header("x-api-key", elevatedApiKey)
+      }.andExpect {
+        status { isForbidden() }
+      }
+
+    komgaUserLifecycle.deleteUser(regularUser)
   }
 }

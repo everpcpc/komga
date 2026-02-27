@@ -233,7 +233,7 @@ class BookDtoDao(
     bookId: String,
     userId: String,
     filterOnLibraryIds: Collection<String>?,
-    restrictions: ContentRestrictions,
+    restrictions: Collection<ContentRestrictions>,
   ): BookDto? = findSiblingReadList(readList, bookId, userId, filterOnLibraryIds, restrictions, next = false)
 
   override fun findNextInReadListOrNull(
@@ -241,14 +241,14 @@ class BookDtoDao(
     bookId: String,
     userId: String,
     filterOnLibraryIds: Collection<String>?,
-    restrictions: ContentRestrictions,
+    restrictions: Collection<ContentRestrictions>,
   ): BookDto? = findSiblingReadList(readList, bookId, userId, filterOnLibraryIds, restrictions, next = true)
 
   override fun findAllOnDeck(
     userId: String,
     filterOnLibraryIds: Collection<String>?,
     pageable: Pageable,
-    restrictions: ContentRestrictions,
+    restrictions: Collection<ContentRestrictions>,
   ): Page<BookDto> {
     val (query, sortField, _) = bookCommonDao.getBooksOnDeckQuery(userId, restrictions, filterOnLibraryIds, onDeckFields)
 
@@ -338,7 +338,7 @@ class BookDtoDao(
     bookId: String,
     userId: String,
     filterOnLibraryIds: Collection<String>?,
-    restrictions: ContentRestrictions,
+    restrictions: Collection<ContentRestrictions>,
     next: Boolean,
   ): BookDto? {
     if (readList.ordered) {
@@ -355,7 +355,7 @@ class BookDtoDao(
 
       return dslRO
         .selectBase(userId, setOf(RequiredJoin.ReadList(readList.id)))
-        .apply { if (restrictions.isRestricted) and(restrictions.toCondition()) }
+        .apply { if (restrictions.isNotEmpty()) and(restrictions.toCondition()) }
         .apply { filterOnLibraryIds?.let { and(b.LIBRARY_ID.`in`(it)) } }
         .orderBy(rlbAlias(readList.id).NUMBER.let { if (next) it.asc() else it.desc() })
         .seek(numberSort)
@@ -373,9 +373,9 @@ class BookDtoDao(
           .on(b.ID.eq(rlb.BOOK_ID))
           .leftJoin(d)
           .on(b.ID.eq(d.BOOK_ID))
-          .apply { if (restrictions.isRestricted) leftJoin(sd).on(sd.SERIES_ID.eq(b.SERIES_ID)) }
+          .apply { if (restrictions.isNotEmpty()) leftJoin(sd).on(sd.SERIES_ID.eq(b.SERIES_ID)) }
           .where(rlb.READLIST_ID.eq(readList.id))
-          .apply { if (restrictions.isRestricted) and(restrictions.toCondition()) }
+          .apply { if (restrictions.isNotEmpty()) and(restrictions.toCondition()) }
           .apply { filterOnLibraryIds?.let { and(b.LIBRARY_ID.`in`(it)) } }
           .orderBy(d.RELEASE_DATE)
           .fetch(b.ID)

@@ -42,7 +42,7 @@ interface BookDtoRepository {
     bookId: String,
     userId: String,
     filterOnLibraryIds: Collection<String>?,
-    restrictions: ContentRestrictions = ContentRestrictions(),
+    restrictions: Collection<ContentRestrictions> = emptyList(),
   ): BookDto?
 
   fun findNextInReadListOrNull(
@@ -50,14 +50,14 @@ interface BookDtoRepository {
     bookId: String,
     userId: String,
     filterOnLibraryIds: Collection<String>?,
-    restrictions: ContentRestrictions = ContentRestrictions(),
+    restrictions: Collection<ContentRestrictions> = emptyList(),
   ): BookDto?
 
   fun findAllOnDeck(
     userId: String,
     filterOnLibraryIds: Collection<String>?,
     pageable: Pageable,
-    restrictions: ContentRestrictions = ContentRestrictions(),
+    restrictions: Collection<ContentRestrictions> = emptyList(),
   ): Page<BookDto>
 
   fun findAllDuplicates(

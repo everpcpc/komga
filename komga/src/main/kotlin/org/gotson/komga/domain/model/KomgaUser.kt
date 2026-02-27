@@ -3,7 +3,6 @@ package org.gotson.komga.domain.model
 import com.github.f4b6a3.tsid.TsidCreator
 import jakarta.validation.constraints.Email
 import jakarta.validation.constraints.NotBlank
-import org.gotson.komga.language.lowerNotBlank
 import java.time.LocalDateTime
 
 data class KomgaUser(
@@ -54,43 +53,7 @@ data class KomgaUser(
   fun isContentAllowed(
     ageRating: Int? = null,
     sharingLabels: Set<String> = emptySet(),
-  ): Boolean {
-    val labels = sharingLabels.lowerNotBlank().toSet()
-
-    val ageAllowed =
-      if (restrictions.ageRestriction?.restriction == AllowExclude.ALLOW_ONLY)
-        ageRating != null && ageRating <= restrictions.ageRestriction.age
-      else
-        null
-
-    val labelAllowed =
-      if (restrictions.labelsAllow.isNotEmpty())
-        restrictions.labelsAllow.intersect(labels).isNotEmpty()
-      else
-        null
-
-    val allowed =
-      when {
-        ageAllowed == null -> labelAllowed != false
-        labelAllowed == null -> ageAllowed != false
-        else -> ageAllowed != false || labelAllowed != false
-      }
-    if (!allowed) return false
-
-    val ageDenied =
-      if (restrictions.ageRestriction?.restriction == AllowExclude.EXCLUDE)
-        ageRating != null && ageRating >= restrictions.ageRestriction.age
-      else
-        false
-
-    val labelDenied =
-      if (restrictions.labelsExclude.isNotEmpty())
-        restrictions.labelsExclude.intersect(labels).isNotEmpty()
-      else
-        false
-
-    return !ageDenied && !labelDenied
-  }
+  ): Boolean = restrictions.isContentAllowed(ageRating, sharingLabels)
 
   override fun toString(): String = "KomgaUser(createdDate=$createdDate, email='$email', roles=$roles, sharedLibrariesIds=$sharedLibrariesIds, sharedAllLibraries=$sharedAllLibraries, restrictions=$restrictions, id='$id', lastModifiedDate=$lastModifiedDate)"
 }

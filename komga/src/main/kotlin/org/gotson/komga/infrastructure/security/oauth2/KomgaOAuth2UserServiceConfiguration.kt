@@ -66,7 +66,7 @@ class KomgaOAuth2UserServiceConfiguration(
         userRepository.findByEmailIgnoreCaseOrNull(oidcUser.email)
           ?: tryCreateNewUser(oidcUser.email)
 
-      KomgaPrincipal(existingUser, oidcUser)
+      KomgaPrincipal(existingUser, oidcUser = oidcUser)
     }
   }
 

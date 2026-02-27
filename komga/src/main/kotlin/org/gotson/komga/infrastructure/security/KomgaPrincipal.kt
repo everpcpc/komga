@@ -1,6 +1,7 @@
 package org.gotson.komga.infrastructure.security
 
 import org.gotson.komga.domain.model.ApiKey
+import org.gotson.komga.domain.model.AccessControl
 import org.gotson.komga.domain.model.KomgaUser
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.authority.SimpleGrantedAuthority
@@ -12,6 +13,7 @@ import org.springframework.security.oauth2.core.user.OAuth2User
 
 class KomgaPrincipal(
   val user: KomgaUser,
+  val access: AccessControl = AccessControl.fromUser(user),
   val oAuth2User: OAuth2User? = null,
   val oidcUser: OidcUser? = null,
   val apiKey: ApiKey? = null,
@@ -20,7 +22,7 @@ class KomgaPrincipal(
   OAuth2User,
   OidcUser {
   override fun getAuthorities(): MutableCollection<out GrantedAuthority> =
-    user.roles
+    access.roles
       .map { SimpleGrantedAuthority("ROLE_$it") }
       .toMutableSet()
 

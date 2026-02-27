@@ -941,8 +941,8 @@ class SeriesSearchTest(
 
     run {
       val search = SeriesSearch(SearchCondition.ReadStatus(SearchOperator.Is(ReadStatus.READ)))
-      val found = seriesDao.findAll(search.condition, SearchContext(null), Pageable.unpaged()).content
-      val thrown = catchThrowable { seriesDtoDao.findAll(search, SearchContext(null), Pageable.unpaged()) }
+      val found = seriesDao.findAll(search.condition, SearchContext.empty(), Pageable.unpaged()).content
+      val thrown = catchThrowable { seriesDtoDao.findAll(search, SearchContext.empty(), Pageable.unpaged()) }
 
       assertThat(found).isEmpty()
       assertThat(thrown).isInstanceOf(IllegalArgumentException::class.java)

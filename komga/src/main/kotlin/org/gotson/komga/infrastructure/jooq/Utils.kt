@@ -89,6 +89,11 @@ fun ContentRestrictions.toCondition(): Condition {
     .and(ageDenied.and(labelDenied))
 }
 
+fun Collection<ContentRestrictions>.toCondition(): Condition =
+  this.fold(DSL.noCondition()) { acc, restrictions ->
+    acc.and(restrictions.toCondition())
+  }
+
 fun ObjectMapper.serializeJsonGz(obj: Any): ByteArray? =
   try {
     ByteArrayOutputStream().use { baos ->

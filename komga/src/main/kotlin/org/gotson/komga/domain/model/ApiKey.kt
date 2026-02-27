@@ -8,6 +8,10 @@ data class ApiKey(
   val userId: String,
   val key: String,
   val comment: String,
+  val roles: Set<UserRoles> = UserRoles.entries.toSet(),
+  val sharedLibrariesIds: Set<String> = emptySet(),
+  val sharedAllLibraries: Boolean = true,
+  val restrictions: ContentRestrictions = ContentRestrictions(),
   override val createdDate: LocalDateTime = LocalDateTime.now(),
   override val lastModifiedDate: LocalDateTime = createdDate,
 ) : Auditable

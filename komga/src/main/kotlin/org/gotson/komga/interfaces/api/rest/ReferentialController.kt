@@ -37,10 +37,10 @@ class ReferentialController(
   ): List<AuthorDto> =
 
     when {
-      libraryId != null -> referentialRepository.findAllAuthorsByNameAndLibrary(search, libraryId, principal.user.getAuthorizedLibraryIds(null))
-      collectionId != null -> referentialRepository.findAllAuthorsByNameAndCollection(search, collectionId, principal.user.getAuthorizedLibraryIds(null))
-      seriesId != null -> referentialRepository.findAllAuthorsByNameAndSeries(search, seriesId, principal.user.getAuthorizedLibraryIds(null))
-      else -> referentialRepository.findAllAuthorsByName(search, principal.user.getAuthorizedLibraryIds(null))
+      libraryId != null -> referentialRepository.findAllAuthorsByNameAndLibrary(search, libraryId, principal.access.getAuthorizedLibraryIds(null))
+      collectionId != null -> referentialRepository.findAllAuthorsByNameAndCollection(search, collectionId, principal.access.getAuthorizedLibraryIds(null))
+      seriesId != null -> referentialRepository.findAllAuthorsByNameAndSeries(search, seriesId, principal.access.getAuthorizedLibraryIds(null))
+      else -> referentialRepository.findAllAuthorsByName(search, principal.access.getAuthorizedLibraryIds(null))
     }.map { it.toDto() }
 
   @PageableWithoutSortAsQueryParam
@@ -67,11 +67,11 @@ class ReferentialController(
         )
 
     return when {
-      libraryIds.isNotEmpty() -> referentialRepository.findAllAuthorsByNameAndLibraries(search, role, libraryIds, principal.user.getAuthorizedLibraryIds(null), pageRequest)
-      collectionId != null -> referentialRepository.findAllAuthorsByNameAndCollection(search, role, collectionId, principal.user.getAuthorizedLibraryIds(null), pageRequest)
-      seriesId != null -> referentialRepository.findAllAuthorsByNameAndSeries(search, role, seriesId, principal.user.getAuthorizedLibraryIds(null), pageRequest)
-      readListId != null -> referentialRepository.findAllAuthorsByNameAndReadList(search, role, readListId, principal.user.getAuthorizedLibraryIds(null), pageRequest)
-      else -> referentialRepository.findAllAuthorsByName(search, role, principal.user.getAuthorizedLibraryIds(null), pageRequest)
+      libraryIds.isNotEmpty() -> referentialRepository.findAllAuthorsByNameAndLibraries(search, role, libraryIds, principal.access.getAuthorizedLibraryIds(null), pageRequest)
+      collectionId != null -> referentialRepository.findAllAuthorsByNameAndCollection(search, role, collectionId, principal.access.getAuthorizedLibraryIds(null), pageRequest)
+      seriesId != null -> referentialRepository.findAllAuthorsByNameAndSeries(search, role, seriesId, principal.access.getAuthorizedLibraryIds(null), pageRequest)
+      readListId != null -> referentialRepository.findAllAuthorsByNameAndReadList(search, role, readListId, principal.access.getAuthorizedLibraryIds(null), pageRequest)
+      else -> referentialRepository.findAllAuthorsByName(search, role, principal.access.getAuthorizedLibraryIds(null), pageRequest)
     }.map { it.toDto() }
   }
 
@@ -80,13 +80,13 @@ class ReferentialController(
   fun getAuthorsNames(
     @AuthenticationPrincipal principal: KomgaPrincipal,
     @RequestParam(name = "search", defaultValue = "") search: String,
-  ): List<String> = referentialRepository.findAllAuthorsNamesByName(search, principal.user.getAuthorizedLibraryIds(null))
+  ): List<String> = referentialRepository.findAllAuthorsNamesByName(search, principal.access.getAuthorizedLibraryIds(null))
 
   @GetMapping("v1/authors/roles")
   @Operation(summary = "List authors' roles")
   fun getAuthorsRoles(
     @AuthenticationPrincipal principal: KomgaPrincipal,
-  ): List<String> = referentialRepository.findAllAuthorsRoles(principal.user.getAuthorizedLibraryIds(null))
+  ): List<String> = referentialRepository.findAllAuthorsRoles(principal.access.getAuthorizedLibraryIds(null))
 
   @GetMapping("v1/genres")
   @Operation(summary = "List genres", description = "Can be filtered by various criteria")
@@ -96,9 +96,9 @@ class ReferentialController(
     @RequestParam(name = "collection_id", required = false) collectionId: String?,
   ): Set<String> =
     when {
-      libraryIds.isNotEmpty() -> referentialRepository.findAllGenresByLibraries(libraryIds, principal.user.getAuthorizedLibraryIds(null))
-      collectionId != null -> referentialRepository.findAllGenresByCollection(collectionId, principal.user.getAuthorizedLibraryIds(null))
-      else -> referentialRepository.findAllGenres(principal.user.getAuthorizedLibraryIds(null))
+      libraryIds.isNotEmpty() -> referentialRepository.findAllGenresByLibraries(libraryIds, principal.access.getAuthorizedLibraryIds(null))
+      collectionId != null -> referentialRepository.findAllGenresByCollection(collectionId, principal.access.getAuthorizedLibraryIds(null))
+      else -> referentialRepository.findAllGenres(principal.access.getAuthorizedLibraryIds(null))
     }
 
   @GetMapping("v1/sharing-labels")
@@ -109,9 +109,9 @@ class ReferentialController(
     @RequestParam(name = "collection_id", required = false) collectionId: String?,
   ): Set<String> =
     when {
-      libraryIds.isNotEmpty() -> referentialRepository.findAllSharingLabelsByLibraries(libraryIds, principal.user.getAuthorizedLibraryIds(null))
-      collectionId != null -> referentialRepository.findAllSharingLabelsByCollection(collectionId, principal.user.getAuthorizedLibraryIds(null))
-      else -> referentialRepository.findAllSharingLabels(principal.user.getAuthorizedLibraryIds(null))
+      libraryIds.isNotEmpty() -> referentialRepository.findAllSharingLabelsByLibraries(libraryIds, principal.access.getAuthorizedLibraryIds(null))
+      collectionId != null -> referentialRepository.findAllSharingLabelsByCollection(collectionId, principal.access.getAuthorizedLibraryIds(null))
+      else -> referentialRepository.findAllSharingLabels(principal.access.getAuthorizedLibraryIds(null))
     }
 
   @GetMapping("v1/tags")
@@ -122,9 +122,9 @@ class ReferentialController(
     @RequestParam(name = "collection_id", required = false) collectionId: String?,
   ): Set<String> =
     when {
-      libraryIds.isNotEmpty() -> referentialRepository.findAllSeriesAndBookTagsByLibraries(libraryIds, principal.user.getAuthorizedLibraryIds(null))
-      collectionId != null -> referentialRepository.findAllSeriesAndBookTagsByCollection(collectionId, principal.user.getAuthorizedLibraryIds(null))
-      else -> referentialRepository.findAllSeriesAndBookTags(principal.user.getAuthorizedLibraryIds(null))
+      libraryIds.isNotEmpty() -> referentialRepository.findAllSeriesAndBookTagsByLibraries(libraryIds, principal.access.getAuthorizedLibraryIds(null))
+      collectionId != null -> referentialRepository.findAllSeriesAndBookTagsByCollection(collectionId, principal.access.getAuthorizedLibraryIds(null))
+      else -> referentialRepository.findAllSeriesAndBookTags(principal.access.getAuthorizedLibraryIds(null))
     }
 
   @GetMapping("v1/tags/book")
@@ -136,10 +136,10 @@ class ReferentialController(
     @RequestParam(name = "library_id", required = false) libraryIds: Set<String> = emptySet(),
   ): Set<String> =
     when {
-      seriesId != null -> referentialRepository.findAllBookTagsBySeries(seriesId, principal.user.getAuthorizedLibraryIds(null))
-      readListId != null -> referentialRepository.findAllBookTagsByReadList(readListId, principal.user.getAuthorizedLibraryIds(null))
-      libraryIds.isNotEmpty() -> referentialRepository.findAllBookTags(principal.user.getAuthorizedLibraryIds(libraryIds))
-      else -> referentialRepository.findAllBookTags(principal.user.getAuthorizedLibraryIds(null))
+      seriesId != null -> referentialRepository.findAllBookTagsBySeries(seriesId, principal.access.getAuthorizedLibraryIds(null))
+      readListId != null -> referentialRepository.findAllBookTagsByReadList(readListId, principal.access.getAuthorizedLibraryIds(null))
+      libraryIds.isNotEmpty() -> referentialRepository.findAllBookTags(principal.access.getAuthorizedLibraryIds(libraryIds))
+      else -> referentialRepository.findAllBookTags(principal.access.getAuthorizedLibraryIds(null))
     }
 
   @GetMapping("v1/tags/series")
@@ -150,9 +150,9 @@ class ReferentialController(
     @RequestParam(name = "collection_id", required = false) collectionId: String?,
   ): Set<String> =
     when {
-      libraryId != null -> referentialRepository.findAllSeriesTagsByLibrary(libraryId, principal.user.getAuthorizedLibraryIds(null))
-      collectionId != null -> referentialRepository.findAllSeriesTagsByCollection(collectionId, principal.user.getAuthorizedLibraryIds(null))
-      else -> referentialRepository.findAllSeriesTags(principal.user.getAuthorizedLibraryIds(null))
+      libraryId != null -> referentialRepository.findAllSeriesTagsByLibrary(libraryId, principal.access.getAuthorizedLibraryIds(null))
+      collectionId != null -> referentialRepository.findAllSeriesTagsByCollection(collectionId, principal.access.getAuthorizedLibraryIds(null))
+      else -> referentialRepository.findAllSeriesTags(principal.access.getAuthorizedLibraryIds(null))
     }
 
   @GetMapping("v1/languages")
@@ -163,9 +163,9 @@ class ReferentialController(
     @RequestParam(name = "collection_id", required = false) collectionId: String?,
   ): Set<String> =
     when {
-      libraryIds.isNotEmpty() -> referentialRepository.findAllLanguagesByLibraries(libraryIds, principal.user.getAuthorizedLibraryIds(null))
-      collectionId != null -> referentialRepository.findAllLanguagesByCollection(collectionId, principal.user.getAuthorizedLibraryIds(null))
-      else -> referentialRepository.findAllLanguages(principal.user.getAuthorizedLibraryIds(null))
+      libraryIds.isNotEmpty() -> referentialRepository.findAllLanguagesByLibraries(libraryIds, principal.access.getAuthorizedLibraryIds(null))
+      collectionId != null -> referentialRepository.findAllLanguagesByCollection(collectionId, principal.access.getAuthorizedLibraryIds(null))
+      else -> referentialRepository.findAllLanguages(principal.access.getAuthorizedLibraryIds(null))
     }
 
   @GetMapping("v1/publishers")
@@ -176,9 +176,9 @@ class ReferentialController(
     @RequestParam(name = "collection_id", required = false) collectionId: String?,
   ): Set<String> =
     when {
-      libraryIds.isNotEmpty() -> referentialRepository.findAllPublishersByLibraries(libraryIds, principal.user.getAuthorizedLibraryIds(null))
-      collectionId != null -> referentialRepository.findAllPublishersByCollection(collectionId, principal.user.getAuthorizedLibraryIds(null))
-      else -> referentialRepository.findAllPublishers(principal.user.getAuthorizedLibraryIds(null))
+      libraryIds.isNotEmpty() -> referentialRepository.findAllPublishersByLibraries(libraryIds, principal.access.getAuthorizedLibraryIds(null))
+      collectionId != null -> referentialRepository.findAllPublishersByCollection(collectionId, principal.access.getAuthorizedLibraryIds(null))
+      else -> referentialRepository.findAllPublishers(principal.access.getAuthorizedLibraryIds(null))
     }
 
   @GetMapping("v1/age-ratings")
@@ -189,9 +189,9 @@ class ReferentialController(
     @RequestParam(name = "collection_id", required = false) collectionId: String?,
   ): Set<String> =
     when {
-      libraryIds.isNotEmpty() -> referentialRepository.findAllAgeRatingsByLibraries(libraryIds, principal.user.getAuthorizedLibraryIds(null))
-      collectionId != null -> referentialRepository.findAllAgeRatingsByCollection(collectionId, principal.user.getAuthorizedLibraryIds(null))
-      else -> referentialRepository.findAllAgeRatings(principal.user.getAuthorizedLibraryIds(null))
+      libraryIds.isNotEmpty() -> referentialRepository.findAllAgeRatingsByLibraries(libraryIds, principal.access.getAuthorizedLibraryIds(null))
+      collectionId != null -> referentialRepository.findAllAgeRatingsByCollection(collectionId, principal.access.getAuthorizedLibraryIds(null))
+      else -> referentialRepository.findAllAgeRatings(principal.access.getAuthorizedLibraryIds(null))
     }.map { it?.toString() ?: "None" }.toSet()
 
   @GetMapping("v1/series/release-dates")
@@ -202,8 +202,8 @@ class ReferentialController(
     @RequestParam(name = "collection_id", required = false) collectionId: String?,
   ): Set<String> =
     when {
-      libraryIds.isNotEmpty() -> referentialRepository.findAllSeriesReleaseDatesByLibraries(libraryIds, principal.user.getAuthorizedLibraryIds(null))
-      collectionId != null -> referentialRepository.findAllSeriesReleaseDatesByCollection(collectionId, principal.user.getAuthorizedLibraryIds(null))
-      else -> referentialRepository.findAllSeriesReleaseDates(principal.user.getAuthorizedLibraryIds(null))
+      libraryIds.isNotEmpty() -> referentialRepository.findAllSeriesReleaseDatesByLibraries(libraryIds, principal.access.getAuthorizedLibraryIds(null))
+      collectionId != null -> referentialRepository.findAllSeriesReleaseDatesByCollection(collectionId, principal.access.getAuthorizedLibraryIds(null))
+      else -> referentialRepository.findAllSeriesReleaseDates(principal.access.getAuthorizedLibraryIds(null))
     }.map { it.year.toString() }.toSet()
 }

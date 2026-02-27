@@ -1,6 +1,7 @@
 package org.gotson.komga.interfaces.api
 
 import org.gotson.komga.domain.model.Book
+import org.gotson.komga.domain.model.AccessControl
 import org.gotson.komga.domain.model.KomgaUser
 import org.gotson.komga.domain.persistence.BookRepository
 import org.gotson.komga.domain.persistence.SeriesMetadataRepository
@@ -24,11 +25,16 @@ class ContentRestrictionChecker(
   fun checkContentRestriction(
     komgaUser: KomgaUser,
     book: BookDto,
+  ) = checkContentRestriction(AccessControl.fromUser(komgaUser), book)
+
+  fun checkContentRestriction(
+    accessControl: AccessControl,
+    book: BookDto,
   ) {
-    if (!komgaUser.canAccessLibrary(book.libraryId)) throw ResponseStatusException(HttpStatus.FORBIDDEN)
-    if (komgaUser.restrictions.isRestricted)
+    if (!accessControl.canAccessLibrary(book.libraryId)) throw ResponseStatusException(HttpStatus.FORBIDDEN)
+    if (accessControl.restrictions.isNotEmpty())
       seriesMetadataRepository.findById(book.seriesId).let {
-        if (!komgaUser.isContentAllowed(it.ageRating, it.sharingLabels)) throw ResponseStatusException(HttpStatus.FORBIDDEN)
+        if (!accessControl.isContentAllowed(it.ageRating, it.sharingLabels)) throw ResponseStatusException(HttpStatus.FORBIDDEN)
       }
   }
 
@@ -41,11 +47,16 @@ class ContentRestrictionChecker(
   fun checkContentRestriction(
     komgaUser: KomgaUser,
     book: Book,
+  ) = checkContentRestriction(AccessControl.fromUser(komgaUser), book)
+
+  fun checkContentRestriction(
+    accessControl: AccessControl,
+    book: Book,
   ) {
-    if (!komgaUser.canAccessLibrary(book.libraryId)) throw ResponseStatusException(HttpStatus.FORBIDDEN)
-    if (komgaUser.restrictions.isRestricted)
+    if (!accessControl.canAccessLibrary(book.libraryId)) throw ResponseStatusException(HttpStatus.FORBIDDEN)
+    if (accessControl.restrictions.isNotEmpty())
       seriesMetadataRepository.findById(book.seriesId).let {
-        if (!komgaUser.isContentAllowed(it.ageRating, it.sharingLabels)) throw ResponseStatusException(HttpStatus.FORBIDDEN)
+        if (!accessControl.isContentAllowed(it.ageRating, it.sharingLabels)) throw ResponseStatusException(HttpStatus.FORBIDDEN)
       }
   }
 
@@ -58,16 +69,21 @@ class ContentRestrictionChecker(
   fun checkContentRestriction(
     komgaUser: KomgaUser,
     bookId: String,
+  ) = checkContentRestriction(AccessControl.fromUser(komgaUser), bookId)
+
+  fun checkContentRestriction(
+    accessControl: AccessControl,
+    bookId: String,
   ) {
-    if (!komgaUser.canAccessAllLibraries()) {
+    if (!accessControl.canAccessAllLibraries()) {
       bookRepository.getLibraryIdOrNull(bookId)?.let {
-        if (!komgaUser.canAccessLibrary(it)) throw ResponseStatusException(HttpStatus.FORBIDDEN)
+        if (!accessControl.canAccessLibrary(it)) throw ResponseStatusException(HttpStatus.FORBIDDEN)
       } ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
     }
-    if (komgaUser.restrictions.isRestricted)
+    if (accessControl.restrictions.isNotEmpty())
       bookRepository.getSeriesIdOrNull(bookId)?.let { seriesId ->
         seriesMetadataRepository.findById(seriesId).let {
-          if (!komgaUser.isContentAllowed(it.ageRating, it.sharingLabels)) throw ResponseStatusException(HttpStatus.FORBIDDEN)
+          if (!accessControl.isContentAllowed(it.ageRating, it.sharingLabels)) throw ResponseStatusException(HttpStatus.FORBIDDEN)
         }
       } ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
   }
@@ -80,8 +96,13 @@ class ContentRestrictionChecker(
   fun checkContentRestriction(
     komgaUser: KomgaUser,
     series: SeriesDto,
+  ) = checkContentRestriction(AccessControl.fromUser(komgaUser), series)
+
+  fun checkContentRestriction(
+    accessControl: AccessControl,
+    series: SeriesDto,
   ) {
-    if (!komgaUser.canAccessLibrary(series.libraryId)) throw ResponseStatusException(HttpStatus.FORBIDDEN)
-    if (!komgaUser.isContentAllowed(series.metadata.ageRating, series.metadata.sharingLabels)) throw ResponseStatusException(HttpStatus.FORBIDDEN)
+    if (!accessControl.canAccessLibrary(series.libraryId)) throw ResponseStatusException(HttpStatus.FORBIDDEN)
+    if (!accessControl.isContentAllowed(series.metadata.ageRating, series.metadata.sharingLabels)) throw ResponseStatusException(HttpStatus.FORBIDDEN)
   }
 }

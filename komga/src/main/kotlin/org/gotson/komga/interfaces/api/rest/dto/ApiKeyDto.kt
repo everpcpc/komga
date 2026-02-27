@@ -9,6 +9,12 @@ data class ApiKeyDto(
   val userId: String,
   val key: String,
   val comment: String,
+  val roles: Set<String>,
+  val sharedAllLibraries: Boolean,
+  val sharedLibrariesIds: Set<String>,
+  val labelsAllow: Set<String>,
+  val labelsExclude: Set<String>,
+  val ageRestriction: AgeRestrictionDto?,
   val createdDate: ZonedDateTime,
   val lastModifiedDate: ZonedDateTime,
 )
@@ -19,8 +25,14 @@ fun ApiKey.toDto() =
     userId = userId,
     key = key,
     comment = comment,
+    roles = roles.map { it.name }.toSet(),
+    sharedAllLibraries = sharedAllLibraries,
+    sharedLibrariesIds = sharedLibrariesIds,
+    labelsAllow = restrictions.labelsAllow,
+    labelsExclude = restrictions.labelsExclude,
+    ageRestriction = restrictions.ageRestriction?.toDto(),
     createdDate = createdDate.toUTCZoned(),
-    lastModifiedDate = createdDate.toUTCZoned(),
+    lastModifiedDate = lastModifiedDate.toUTCZoned(),
   )
 
 fun ApiKeyDto.redacted() = copy(key = "*".repeat(6))

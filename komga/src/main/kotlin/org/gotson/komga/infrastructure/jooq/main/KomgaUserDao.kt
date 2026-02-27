@@ -32,6 +32,9 @@ class KomgaUserDao(
   private val us = Tables.USER_SHARING
   private val ar = Tables.ANNOUNCEMENTS_READ
   private val uak = Tables.USER_API_KEY
+  private val uakr = Tables.USER_API_KEY_ROLE
+  private val uakl = Tables.USER_API_KEY_LIBRARY_SHARING
+  private val uaks = Tables.USER_API_KEY_SHARING
 
   override fun count(): Long = dslRO.fetchCount(u).toLong()
 
@@ -46,7 +49,7 @@ class KomgaUserDao(
       .where(uak.USER_ID.eq(userId))
       .fetchInto(uak)
       .map {
-        it.toDomain()
+        it.toDomain(dslRO)
       }
 
   override fun findByIdOrNull(id: String): KomgaUser? =
@@ -130,7 +133,21 @@ class KomgaUserDao(
       .set(uak.USER_ID, apiKey.userId)
       .set(uak.API_KEY, apiKey.key)
       .set(uak.COMMENT, apiKey.comment)
+      .set(uak.SHARED_ALL_LIBRARIES, apiKey.sharedAllLibraries)
+      .set(uak.AGE_RESTRICTION, apiKey.restrictions.ageRestriction?.age)
+      .set(
+        uak.AGE_RESTRICTION_ALLOW_ONLY,
+        when (apiKey.restrictions.ageRestriction?.restriction) {
+          AllowExclude.ALLOW_ONLY -> true
+          AllowExclude.EXCLUDE -> false
+          null -> null
+        },
+      )
       .execute()
+
+    dslRW.insertRoles(apiKey)
+    dslRW.insertSharedLibraries(apiKey)
+    dslRW.insertSharingRestrictions(apiKey)
   }
 
   @Transactional
@@ -194,12 +211,32 @@ class KomgaUserDao(
     }
   }
 
+  private fun DSLContext.insertRoles(apiKey: ApiKey) {
+    apiKey.roles.forEach {
+      this
+        .insertInto(uakr)
+        .columns(uakr.API_KEY_ID, uakr.ROLE)
+        .values(apiKey.id, it.name)
+        .execute()
+    }
+  }
+
   private fun DSLContext.insertSharedLibraries(user: KomgaUser) {
     user.sharedLibrariesIds.forEach {
       this
         .insertInto(ul)
         .columns(ul.USER_ID, ul.LIBRARY_ID)
         .values(user.id, it)
+        .execute()
+    }
+  }
+
+  private fun DSLContext.insertSharedLibraries(apiKey: ApiKey) {
+    apiKey.sharedLibrariesIds.forEach {
+      this
+        .insertInto(uakl)
+        .columns(uakl.API_KEY_ID, uakl.LIBRARY_ID)
+        .values(apiKey.id, it)
         .execute()
     }
   }
@@ -218,6 +255,24 @@ class KomgaUserDao(
         .insertInto(us)
         .columns(us.USER_ID, us.ALLOW, us.LABEL)
         .values(user.id, false, label)
+        .execute()
+    }
+  }
+
+  private fun DSLContext.insertSharingRestrictions(apiKey: ApiKey) {
+    apiKey.restrictions.labelsAllow.forEach { label ->
+      this
+        .insertInto(uaks)
+        .columns(uaks.API_KEY_ID, uaks.ALLOW, uaks.LABEL)
+        .values(apiKey.id, true, label)
+        .execute()
+    }
+
+    apiKey.restrictions.labelsExclude.forEach { label ->
+      this
+        .insertInto(uaks)
+        .columns(uaks.API_KEY_ID, uaks.ALLOW, uaks.LABEL)
+        .values(apiKey.id, false, label)
         .execute()
     }
   }
@@ -303,19 +358,56 @@ class KomgaUserDao(
         .selectFrom(uak)
         .where(uak.API_KEY.eq(apiKey))
         .fetchInto(uak)
-        .map { it.toDomain() }
+        .map { it.toDomain(dslRO) }
         .firstOrNull() ?: return null
 
     return Pair(user, key)
   }
 
-  private fun UserApiKeyRecord.toDomain() =
-    ApiKey(
+  private fun UserApiKeyRecord.toDomain(dsl: DSLContext): ApiKey {
+    val roles =
+      dsl
+        .select(uakr.ROLE)
+        .from(uakr)
+        .where(uakr.API_KEY_ID.eq(id))
+        .fetch(uakr.ROLE)
+        .filterNotNull()
+
+    val sharedLibraries =
+      dsl
+        .select(uakl.LIBRARY_ID)
+        .from(uakl)
+        .where(uakl.API_KEY_ID.eq(id))
+        .fetch(uakl.LIBRARY_ID)
+        .filterNotNull()
+        .toSet()
+
+    val restrictions =
+      dsl
+        .selectFrom(uaks)
+        .where(uaks.API_KEY_ID.eq(id))
+        .toList()
+
+    return ApiKey(
       id = id,
       userId = userId,
       key = apiKey,
       comment = comment,
+      roles = UserRoles.valuesOf(roles),
+      sharedLibrariesIds = sharedLibraries,
+      sharedAllLibraries = sharedAllLibraries,
+      restrictions =
+        ContentRestrictions(
+          ageRestriction =
+            if (ageRestriction != null && ageRestrictionAllowOnly != null)
+              AgeRestriction(ageRestriction, if (ageRestrictionAllowOnly) AllowExclude.ALLOW_ONLY else AllowExclude.EXCLUDE)
+            else
+              null,
+          labelsAllow = restrictions.filter { it.allow }.map { it.label }.toSet(),
+          labelsExclude = restrictions.filterNot { it.allow }.map { it.label }.toSet(),
+        ),
       createdDate = createdDate.toCurrentTimeZone(),
       lastModifiedDate = lastModifiedDate.toCurrentTimeZone(),
     )
+  }
 }

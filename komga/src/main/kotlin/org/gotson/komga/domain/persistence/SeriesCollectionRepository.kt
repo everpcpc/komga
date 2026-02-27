@@ -13,7 +13,7 @@ interface SeriesCollectionRepository {
   fun findByIdOrNull(
     collectionId: String,
     filterOnLibraryIds: Collection<String>? = null,
-    restrictions: ContentRestrictions = ContentRestrictions(),
+    restrictions: Collection<ContentRestrictions> = emptyList(),
   ): SeriesCollection?
 
   /**
@@ -26,7 +26,7 @@ interface SeriesCollectionRepository {
     filterOnLibraryIds: Collection<String>? = null,
     search: String? = null,
     pageable: Pageable,
-    restrictions: ContentRestrictions = ContentRestrictions(),
+    restrictions: Collection<ContentRestrictions> = emptyList(),
   ): Page<SeriesCollection>
 
   /**
@@ -36,7 +36,7 @@ interface SeriesCollectionRepository {
   fun findAllContainingSeriesId(
     containsSeriesId: String,
     filterOnLibraryIds: Collection<String>?,
-    restrictions: ContentRestrictions = ContentRestrictions(),
+    restrictions: Collection<ContentRestrictions> = emptyList(),
   ): Collection<SeriesCollection>
 
   fun findAllEmpty(): Collection<SeriesCollection>

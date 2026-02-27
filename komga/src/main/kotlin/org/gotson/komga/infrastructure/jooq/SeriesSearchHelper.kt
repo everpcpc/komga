@@ -26,7 +26,7 @@ class SeriesSearchHelper(
   }
 
   fun toCondition(): Pair<Condition, Set<RequiredJoin>> {
-    val restrictions = toConditionInternal(context.restrictions)
+    val restrictions = toConditionForRestrictions(context.restrictions)
     val authorizedLibraries = toConditionInternal(context.libraryIds)
     return restrictions.first.and(authorizedLibraries.first) to (restrictions.second + authorizedLibraries.second)
   }

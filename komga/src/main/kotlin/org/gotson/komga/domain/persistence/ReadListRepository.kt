@@ -13,7 +13,7 @@ interface ReadListRepository {
   fun findByIdOrNull(
     readListId: String,
     filterOnLibraryIds: Collection<String>? = null,
-    restrictions: ContentRestrictions = ContentRestrictions(),
+    restrictions: Collection<ContentRestrictions> = emptyList(),
   ): ReadList?
 
   /**
@@ -26,7 +26,7 @@ interface ReadListRepository {
     filterOnLibraryIds: Collection<String>? = null,
     search: String? = null,
     pageable: Pageable,
-    restrictions: ContentRestrictions = ContentRestrictions(),
+    restrictions: Collection<ContentRestrictions> = emptyList(),
   ): Page<ReadList>
 
   /**
@@ -36,7 +36,7 @@ interface ReadListRepository {
   fun findAllContainingBookId(
     containsBookId: String,
     filterOnLibraryIds: Collection<String>?,
-    restrictions: ContentRestrictions = ContentRestrictions(),
+    restrictions: Collection<ContentRestrictions> = emptyList(),
   ): Collection<ReadList>
 
   fun findAllEmpty(): Collection<ReadList>

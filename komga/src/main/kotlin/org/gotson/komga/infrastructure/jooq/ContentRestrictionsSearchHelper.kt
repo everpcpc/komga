@@ -7,6 +7,12 @@ import org.jooq.Condition
 import org.jooq.impl.DSL
 
 abstract class ContentRestrictionsSearchHelper {
+  protected fun toConditionForRestrictions(restrictions: Collection<ContentRestrictions>): Pair<Condition, Set<RequiredJoin>> =
+    restrictions.fold(DSL.noCondition() to emptySet()) { acc, restriction ->
+      val condition = toConditionInternal(restriction)
+      acc.first.and(condition.first) to (acc.second + condition.second)
+    }
+
   protected fun toConditionInternal(restrictions: ContentRestrictions): Pair<Condition, Set<RequiredJoin>> {
     val ageAllowed =
       if (restrictions.ageRestriction?.restriction == AllowExclude.ALLOW_ONLY) {

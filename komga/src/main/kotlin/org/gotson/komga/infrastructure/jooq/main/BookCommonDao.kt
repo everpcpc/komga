@@ -33,7 +33,7 @@ class BookCommonDao(
 
   fun getBooksOnDeckQuery(
     userId: String,
-    restrictions: ContentRestrictions,
+    restrictions: Collection<ContentRestrictions>,
     filterOnLibraryIds: Collection<String>?,
     selectFields: Array<Field<*>>,
   ): Triple<SelectConditionStep<Record>, Field<LocalDateTime>, SelectJoinStep<Record1<LocalDateTime>>> {

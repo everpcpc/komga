@@ -1,6 +1,7 @@
 package org.gotson.komga.infrastructure.security.apikey
 
 import org.gotson.komga.domain.persistence.KomgaUserRepository
+import org.gotson.komga.domain.model.AccessControl
 import org.gotson.komga.infrastructure.security.KomgaPrincipal
 import org.springframework.security.authentication.BadCredentialsException
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
@@ -26,7 +27,12 @@ class ApiKeyAuthenticationProvider(
     authentication: UsernamePasswordAuthenticationToken,
   ): UserDetails =
     userRepository.findByApiKeyOrNull(authentication.credentials.toString())?.let { (user, apiKey) ->
-      KomgaPrincipal(user, apiKey = apiKey, name = authentication.name)
+      KomgaPrincipal(
+        user = user,
+        access = AccessControl.fromUserAndApiKey(user, apiKey),
+        apiKey = apiKey,
+        name = authentication.name,
+      )
     } ?: throw BadCredentialsException("Bad credentials")
 
   override fun createSuccessAuthentication(

@@ -218,7 +218,7 @@ class UserController(
     @RequestParam(name = "unpaged", required = false) unpaged: Boolean = false,
     @Parameter(hidden = true) page: Pageable,
   ): Page<AuthenticationActivityDto> {
-    if (demo && !principal.user.isAdmin) throw ResponseStatusException(HttpStatus.FORBIDDEN)
+    if (demo && !principal.access.isAdmin) throw ResponseStatusException(HttpStatus.FORBIDDEN)
     val sort =
       if (page.sort.isSorted)
         page.sort
@@ -283,7 +283,7 @@ class UserController(
   fun getApiKeysForCurrentUser(
     @AuthenticationPrincipal principal: KomgaPrincipal,
   ): Collection<ApiKeyDto> {
-    if (demo && !principal.user.isAdmin) throw ResponseStatusException(HttpStatus.FORBIDDEN)
+    if (demo && !principal.access.isAdmin) throw ResponseStatusException(HttpStatus.FORBIDDEN)
     return userRepository.findApiKeyByUserId(principal.user.id).map { it.toDto().redacted() }
   }
 
@@ -293,9 +293,30 @@ class UserController(
     @AuthenticationPrincipal principal: KomgaPrincipal,
     @Valid @RequestBody apiKeyRequest: ApiKeyRequestDto,
   ): ApiKeyDto {
-    if (demo && !principal.user.isAdmin) throw ResponseStatusException(HttpStatus.FORBIDDEN)
+    if (demo && !principal.access.isAdmin) throw ResponseStatusException(HttpStatus.FORBIDDEN)
     return try {
-      userLifecycle.createApiKey(principal.user, apiKeyRequest.comment)?.toDto()
+      userLifecycle
+        .createApiKey(
+          user = principal.user,
+          comment = apiKeyRequest.comment,
+          roles = apiKeyRequest.roles?.let { UserRoles.valuesOf(it) } ?: UserRoles.entries.toSet(),
+          sharedAllLibraries = apiKeyRequest.sharedLibraries?.all ?: true,
+          sharedLibrariesIds =
+            if (apiKeyRequest.sharedLibraries == null || apiKeyRequest.sharedLibraries.all)
+              emptySet()
+            else
+              libraryRepository.findAllByIds(apiKeyRequest.sharedLibraries.libraryIds).map { it.id }.toSet(),
+          restrictions =
+            ContentRestrictions(
+              ageRestriction =
+                if (apiKeyRequest.ageRestriction == null || apiKeyRequest.ageRestriction.restriction == AllowExcludeDto.NONE)
+                  null
+                else
+                  AgeRestriction(apiKeyRequest.ageRestriction.age, apiKeyRequest.ageRestriction.restriction.toDomain()),
+              labelsAllow = apiKeyRequest.labelsAllow ?: emptySet(),
+              labelsExclude = apiKeyRequest.labelsExclude ?: emptySet(),
+            ),
+        )?.toDto()
     } catch (e: DuplicateNameException) {
       throw ResponseStatusException(HttpStatus.BAD_REQUEST, e.code)
     }

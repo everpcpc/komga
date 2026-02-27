@@ -2,9 +2,11 @@ package org.gotson.komga.domain.service
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.gotson.komga.domain.model.ApiKey
+import org.gotson.komga.domain.model.ContentRestrictions
 import org.gotson.komga.domain.model.DomainEvent
 import org.gotson.komga.domain.model.DuplicateNameException
 import org.gotson.komga.domain.model.KomgaUser
+import org.gotson.komga.domain.model.UserRoles
 import org.gotson.komga.domain.model.UserEmailAlreadyExistsException
 import org.gotson.komga.domain.persistence.AuthenticationActivityRepository
 import org.gotson.komga.domain.persistence.KomgaUserRepository
@@ -115,6 +117,10 @@ class KomgaUserLifecycle(
   fun createApiKey(
     user: KomgaUser,
     comment: String,
+    roles: Set<UserRoles> = UserRoles.entries.toSet(),
+    sharedAllLibraries: Boolean = true,
+    sharedLibrariesIds: Set<String> = emptySet(),
+    restrictions: ContentRestrictions = ContentRestrictions(),
   ): ApiKey? {
     val commentTrimmed = comment.trim()
     if (userRepository.existsApiKeyByCommentAndUserId(commentTrimmed, user.id))
@@ -126,6 +132,10 @@ class KomgaUserLifecycle(
             userId = user.id,
             key = apiKeyGenerator.generate(),
             comment = commentTrimmed,
+            roles = roles,
+            sharedAllLibraries = sharedAllLibraries,
+            sharedLibrariesIds = sharedLibrariesIds,
+            restrictions = restrictions,
           )
         userRepository.insert(plainTextKey.copy(key = tokenEncoder.encode(plainTextKey.key)))
         return plainTextKey

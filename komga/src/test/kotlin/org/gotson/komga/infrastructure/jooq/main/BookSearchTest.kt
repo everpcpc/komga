@@ -834,8 +834,8 @@ class BookSearchTest(
 
     run {
       val search = BookSearch(SearchCondition.ReadStatus(SearchOperator.Is(ReadStatus.READ)))
-      val found = bookDao.findAll(search.condition, SearchContext(null), Pageable.unpaged()).content
-      val thrown = catchThrowable { bookDtoDao.findAll(search, SearchContext(null), Pageable.unpaged()) }
+      val found = bookDao.findAll(search.condition, SearchContext.empty(), Pageable.unpaged()).content
+      val thrown = catchThrowable { bookDtoDao.findAll(search, SearchContext.empty(), Pageable.unpaged()) }
 
       assertThat(found).isEmpty()
       assertThat(thrown).isInstanceOf(IllegalArgumentException::class.java)

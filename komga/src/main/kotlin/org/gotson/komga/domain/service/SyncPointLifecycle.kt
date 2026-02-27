@@ -1,6 +1,7 @@
 package org.gotson.komga.domain.service
 
 import org.gotson.komga.domain.model.BookSearch
+import org.gotson.komga.domain.model.AccessControl
 import org.gotson.komga.domain.model.KomgaUser
 import org.gotson.komga.domain.model.Media
 import org.gotson.komga.domain.model.MediaProfile
@@ -21,8 +22,14 @@ class SyncPointLifecycle(
     user: KomgaUser,
     apiKeyId: String?,
     libraryIds: List<String>?,
+  ): SyncPoint = createSyncPoint(AccessControl.fromUser(user), apiKeyId, libraryIds)
+
+  fun createSyncPoint(
+    accessControl: AccessControl,
+    apiKeyId: String?,
+    libraryIds: List<String>?,
   ): SyncPoint {
-    val context = SearchContext(user)
+    val context = SearchContext(accessControl)
 
     val syncPoint =
       syncPointRepository

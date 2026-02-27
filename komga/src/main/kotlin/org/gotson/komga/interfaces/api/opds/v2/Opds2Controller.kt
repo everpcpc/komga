@@ -4,8 +4,8 @@ import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
+import org.gotson.komga.domain.model.AccessControl
 import org.gotson.komga.domain.model.BookSearch
-import org.gotson.komga.domain.model.KomgaUser
 import org.gotson.komga.domain.model.Library
 import org.gotson.komga.domain.model.Media
 import org.gotson.komga.domain.model.ReadList
@@ -134,10 +134,10 @@ class Opds2Controller(
     principal: KomgaPrincipal,
   ): FeedGroupDto {
     val libraries =
-      if (principal.user.canAccessAllLibraries()) {
+      if (principal.access.canAccessAllLibraries()) {
         libraryRepository.findAll()
       } else {
-        libraryRepository.findAllByIds(principal.user.sharedLibrariesIds)
+        libraryRepository.findAllByIds(principal.access.sharedLibrariesIds)
       }
     return FeedGroupDto(
       metadata =
@@ -150,13 +150,13 @@ class Opds2Controller(
   }
 
   private fun getLibraryNavigation(
-    user: KomgaUser,
+    accessControl: AccessControl,
     libraryId: String?,
   ): List<WPLinkDto> {
     val uriBuilder = uriBuilder("libraries${if (libraryId != null) "/$libraryId" else ""}")
 
-    val collections = collectionRepository.findAll(libraryId?.let { listOf(it) }, restrictions = user.restrictions, pageable = Pageable.ofSize(1))
-    val readLists = readListRepository.findAll(libraryId?.let { listOf(it) }, restrictions = user.restrictions, pageable = Pageable.ofSize(1))
+    val collections = collectionRepository.findAll(libraryId?.let { listOf(it) }, restrictions = accessControl.restrictions, pageable = Pageable.ofSize(1))
+    val readLists = readListRepository.findAll(libraryId?.let { listOf(it) }, restrictions = accessControl.restrictions, pageable = Pageable.ofSize(1))
 
     return listOfNotNull(
       WPLinkDto("Recommended", OpdsLinkRel.SUBSECTION, href = uriBuilder.toUriString(), type = MEDIATYPE_OPDS_JSON_VALUE),
@@ -192,7 +192,7 @@ class Opds2Controller(
               },
             ),
           ),
-          SearchContext(principal.user),
+          SearchContext(principal.access),
           PageRequest.of(0, RECOMMENDED_ITEMS_NUMBER, Sort.by(Sort.Order.desc("readProgress.readDate"))),
         ).map { opdsGenerator.toOpdsPublicationDto(it) }
 
@@ -202,7 +202,7 @@ class Opds2Controller(
           principal.user.id,
           authorizedLibraryIds,
           Pageable.ofSize(RECOMMENDED_ITEMS_NUMBER),
-          principal.user.restrictions,
+          principal.access.restrictions,
         ).map { opdsGenerator.toOpdsPublicationDto(it) }
 
     val latestBooks =
@@ -217,7 +217,7 @@ class Opds2Controller(
               },
             ),
           ),
-          SearchContext(principal.user),
+          SearchContext(principal.access),
           PageRequest.of(0, RECOMMENDED_ITEMS_NUMBER, Sort.by(Sort.Order.desc("createdDate"))),
         ).map { opdsGenerator.toOpdsPublicationDto(it) }
 
@@ -233,7 +233,7 @@ class Opds2Controller(
               },
             ),
           ),
-          SearchContext(principal.user),
+          SearchContext(principal.access),
           PageRequest.of(0, RECOMMENDED_ITEMS_NUMBER, Sort.by(Sort.Order.desc("lastModified"))),
         ).map { it.toWPLinkDto() }
 
@@ -251,7 +251,7 @@ class Opds2Controller(
           linkStart(),
           linkSearch(),
         ),
-      navigation = getLibraryNavigation(principal.user, libraryId),
+      navigation = getLibraryNavigation(principal.access, libraryId),
       groups =
         listOfNotNull(
           if (library == null) getLibrariesFeedGroup(principal) else null,
@@ -309,7 +309,7 @@ class Opds2Controller(
               SearchCondition.Deleted(SearchOperator.IsFalse),
             ),
           ),
-          SearchContext(principal.user),
+          SearchContext(principal.access),
           PageRequest.of(page.pageNumber, page.pageSize, Sort.by(Sort.Order.desc("readProgress.readDate"))),
         ).map { opdsGenerator.toOpdsPublicationDto(it) }
 
@@ -347,7 +347,7 @@ class Opds2Controller(
           principal.user.id,
           authorizedLibraryIds,
           page,
-          principal.user.restrictions,
+          principal.access.restrictions,
         ).map { opdsGenerator.toOpdsPublicationDto(it) }
 
     val uriBuilder = uriBuilder("libraries${if (library != null) "/${library.id}" else ""}/on-deck")
@@ -387,7 +387,7 @@ class Opds2Controller(
               SearchCondition.Deleted(SearchOperator.IsFalse),
             ),
           ),
-          SearchContext(principal.user),
+          SearchContext(principal.access),
           PageRequest.of(page.pageNumber, page.pageSize, Sort.by(Sort.Order.desc("createdDate"))),
         ).map { opdsGenerator.toOpdsPublicationDto(it) }
 
@@ -431,7 +431,7 @@ class Opds2Controller(
               },
             ),
           ),
-          SearchContext(principal.user),
+          SearchContext(principal.access),
           PageRequest.of(page.pageNumber, page.pageSize, Sort.by(Sort.Order.desc("lastModified"))),
         ).map { it.toWPLinkDto() }
 
@@ -479,7 +479,7 @@ class Opds2Controller(
 
     val pageable = PageRequest.of(page.pageNumber, page.pageSize, Sort.by(Sort.Order.asc("metadata.titleSort")))
 
-    val entries = seriesDtoRepository.findAll(seriesSearch, SearchContext(principal.user), pageable).map { it.toWPLinkDto() }
+    val entries = seriesDtoRepository.findAll(seriesSearch, SearchContext(principal.access), pageable).map { it.toWPLinkDto() }
 
     val uriBuilder = uriBuilder("libraries${if (library != null) "/${library.id}" else ""}/browse")
 
@@ -506,7 +506,7 @@ class Opds2Controller(
           linkSearch(),
           *linkPage(uriBuilder, entries).toTypedArray(),
         ),
-      navigation = getLibraryNavigation(principal.user, libraryId),
+      navigation = getLibraryNavigation(principal.access, libraryId),
       groups =
         listOfNotNull(
           FeedGroupDto(FeedMetadataDto("Series"), navigation = entries.content),
@@ -548,7 +548,7 @@ class Opds2Controller(
           linkSearch(),
           *linkPage(uriBuilder, entries).toTypedArray(),
         ),
-      navigation = getLibraryNavigation(principal.user, libraryId),
+      navigation = getLibraryNavigation(principal.access, libraryId),
       groups =
         listOfNotNull(
           FeedGroupDto(FeedMetadataDto("Collections"), navigation = entries.content),
@@ -562,7 +562,7 @@ class Opds2Controller(
     @PathVariable id: String,
     @Parameter(hidden = true) page: Pageable,
   ): FeedDto =
-    collectionRepository.findByIdOrNull(id, principal.user.getAuthorizedLibraryIds(null))?.let { collection ->
+    collectionRepository.findByIdOrNull(id, principal.access.getAuthorizedLibraryIds(null))?.let { collection ->
       val sort =
         if (collection.ordered)
           Sort.by(Sort.Order.asc("collection.number"))
@@ -578,7 +578,7 @@ class Opds2Controller(
           ),
         )
 
-      val entries = seriesDtoRepository.findAll(seriesSearch, SearchContext(principal.user), pageable).map { it.toWPLinkDto() }
+      val entries = seriesDtoRepository.findAll(seriesSearch, SearchContext(principal.access), pageable).map { it.toWPLinkDto() }
 
       val uriBuilder = uriBuilder("collections/$id")
 
@@ -632,7 +632,7 @@ class Opds2Controller(
           linkSearch(),
           *linkPage(uriBuilder, entries).toTypedArray(),
         ),
-      navigation = getLibraryNavigation(principal.user, libraryId),
+      navigation = getLibraryNavigation(principal.access, libraryId),
       groups =
         listOfNotNull(
           FeedGroupDto(FeedMetadataDto("Read Lists"), navigation = entries.content),
@@ -646,7 +646,7 @@ class Opds2Controller(
     @PathVariable id: String,
     @Parameter(hidden = true) page: Pageable,
   ): FeedDto =
-    readListRepository.findByIdOrNull(id, principal.user.getAuthorizedLibraryIds(null))?.let { readList ->
+    readListRepository.findByIdOrNull(id, principal.access.getAuthorizedLibraryIds(null))?.let { readList ->
       val sort =
         if (readList.ordered)
           Sort.by(Sort.Order.asc("readList.number"))
@@ -662,7 +662,7 @@ class Opds2Controller(
             SearchCondition.Deleted(SearchOperator.IsFalse),
           ),
         )
-      val booksPage = bookDtoRepository.findAll(bookSearch, SearchContext(principal.user), pageable)
+      val booksPage = bookDtoRepository.findAll(bookSearch, SearchContext(principal.access), pageable)
 
       val entries = booksPage.map { opdsGenerator.toOpdsPublicationDto(it) }
 
@@ -692,13 +692,13 @@ class Opds2Controller(
     val library =
       if (libraryId != null)
         libraryRepository.findByIdOrNull(libraryId)?.let { library ->
-          if (!principal.user.canAccessLibrary(library)) throw ResponseStatusException(HttpStatus.FORBIDDEN)
+          if (!principal.access.canAccessLibrary(library)) throw ResponseStatusException(HttpStatus.FORBIDDEN)
           library
         } ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
       else
         null
 
-    val libraryIds = principal.user.getAuthorizedLibraryIds(if (libraryId != null) listOf(libraryId) else null)
+    val libraryIds = principal.access.getAuthorizedLibraryIds(if (libraryId != null) listOf(libraryId) else null)
     return Pair(library, libraryIds)
   }
 
@@ -710,7 +710,7 @@ class Opds2Controller(
     @Parameter(hidden = true) page: Pageable,
   ): FeedDto =
     seriesDtoRepository.findByIdOrNull(id, principal.user.id)?.let { series ->
-      contentRestrictionChecker.checkContentRestriction(principal.user, series)
+      contentRestrictionChecker.checkContentRestriction(principal.access, series)
 
       val bookSearch =
         BookSearch(
@@ -725,7 +725,7 @@ class Opds2Controller(
         )
       val pageable = PageRequest.of(page.pageNumber, page.pageSize, Sort.by(Sort.Order.asc("metadata.numberSort")))
 
-      val entries = bookDtoRepository.findAll(bookSearch, SearchContext(principal.user), pageable).map { opdsGenerator.toOpdsPublicationDto(it) }
+      val entries = bookDtoRepository.findAll(bookSearch, SearchContext(principal.access), pageable).map { opdsGenerator.toOpdsPublicationDto(it) }
 
       val uriBuilder = uriBuilder("series/$id")
 
@@ -784,7 +784,7 @@ class Opds2Controller(
               },
             ),
           ),
-          SearchContext(principal.user),
+          SearchContext(principal.access),
           pageable,
         ).map { it.toWPLinkDto() }
 
@@ -801,28 +801,28 @@ class Opds2Controller(
               },
             ),
           ),
-          SearchContext(principal.user),
+          SearchContext(principal.access),
           pageable,
         ).map { opdsGenerator.toOpdsPublicationDto(it) }
 
     val resultsCollections =
       collectionRepository
         .findAll(
-          principal.user.getAuthorizedLibraryIds(null),
-          principal.user.getAuthorizedLibraryIds(null),
+          principal.access.getAuthorizedLibraryIds(null),
+          principal.access.getAuthorizedLibraryIds(null),
           query,
           pageable,
-          principal.user.restrictions,
+          principal.access.restrictions,
         ).map { it.toWPLinkDto() }
 
     val resultsReadLists =
       readListRepository
         .findAll(
-          principal.user.getAuthorizedLibraryIds(null),
-          principal.user.getAuthorizedLibraryIds(null),
+          principal.access.getAuthorizedLibraryIds(null),
+          principal.access.getAuthorizedLibraryIds(null),
           query,
           pageable,
-          principal.user.restrictions,
+          principal.access.restrictions,
         ).map { it.toWPLinkDto() }
 
     return FeedDto(

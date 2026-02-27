@@ -63,11 +63,11 @@ class LibraryController(
   fun getLibraries(
     @AuthenticationPrincipal principal: KomgaPrincipal,
   ): List<LibraryDto> =
-    if (principal.user.canAccessAllLibraries()) {
+    if (principal.access.canAccessAllLibraries()) {
       libraryRepository.findAll()
     } else {
-      libraryRepository.findAllByIds(principal.user.sharedLibrariesIds)
-    }.sortedBy { it.name.lowercase() }.map { it.toDto(includeRoot = principal.user.isAdmin) }
+      libraryRepository.findAllByIds(principal.access.sharedLibrariesIds)
+    }.sortedBy { it.name.lowercase() }.map { it.toDto(includeRoot = principal.access.isAdmin) }
 
   @GetMapping("{libraryId}")
   @Operation(summary = "Get details for a single library")
@@ -76,8 +76,8 @@ class LibraryController(
     @PathVariable libraryId: String,
   ): LibraryDto =
     libraryRepository.findByIdOrNull(libraryId)?.let {
-      if (!principal.user.canAccessLibrary(it)) throw ResponseStatusException(HttpStatus.FORBIDDEN)
-      it.toDto(includeRoot = principal.user.isAdmin)
+      if (!principal.access.canAccessLibrary(it)) throw ResponseStatusException(HttpStatus.FORBIDDEN)
+      it.toDto(includeRoot = principal.access.isAdmin)
     } ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
 
   @PostMapping
@@ -121,7 +121,7 @@ class LibraryController(
             analyzeDimensions = library.analyzeDimensions,
             oneshotsDirectory = library.oneshotsDirectory?.ifBlank { null },
           ),
-        ).toDto(includeRoot = principal.user.isAdmin)
+        ).toDto(includeRoot = principal.access.isAdmin)
     } catch (e: Exception) {
       when (e) {
         is FileNotFoundException,
